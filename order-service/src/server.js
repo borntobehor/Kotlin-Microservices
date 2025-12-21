@@ -6,7 +6,7 @@ dotenv.config();
 const app = express();
 
 const CATALOG_URL = process.env.CATALOG_SERVICE_URL;
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PAYMENT_PORT || 4000;
 
 app.use(express.json());
 

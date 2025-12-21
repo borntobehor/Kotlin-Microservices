@@ -7,7 +7,7 @@ const app = express();
 
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.ORDER_PORT || 5000;
 const orderService_URL =  process.env.ORDER_SERVICE_URL || "http://localhost:4000/orders";
 
 app.post("/payment/:perfumeID", async (req, res) => {
