@@ -1,1 +1,5 @@
+# .gitignore file content
+
+# Environment variables
 .env
+.env.*
