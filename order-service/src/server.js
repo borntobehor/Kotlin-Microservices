@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 const app = express();
 
-const CATALOG_URL = process.env.CATALOG_SERVICE_URL;
+const CATALOG_URL = process.env.CATALOG_SERVICE_URL || "http://localhost:3000/perfumes";
 const PORT = process.env.PAYMENT_PORT || 4000;
 
 app.use(express.json());
