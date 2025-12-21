@@ -1,5 +1,6 @@
-# .gitignore file content
+# Ignore node modules everywhere
+**/node_modules/
 
-# Environment variables
-.env
-.env.*
+# Ignore env files everywhere
+**/.env
+**/.env.*
