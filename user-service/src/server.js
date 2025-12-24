@@ -158,7 +158,7 @@ dotenv.config();
 
 const app = express();
 app.use(cors()); // If you host a web client, set specific origins in production
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json());
 
 const PORT = process.env.USER_PORT || 6000;
 const JWT_SECRET = process.env.JWT_SECRET_KEY || "uOTqyZi8pFVYAhNL92/2QAQcuUqpE5b2DylVA4F5Ai0=";
