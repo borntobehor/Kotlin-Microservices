@@ -91,16 +91,13 @@ if (!MONGODB_URI) {
 // ----- Schema: aligns with your app’s sections -----
 const perfumeSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },         // e.g., "Valentino Born in Roma Intense"
-    brand: { type: String, default: "" },          // e.g., "Valentino"
+    name: { type: String, required: true },
+    brand: { type: String, default: "" },
     description: { type: String, default: "" },
     price: { type: Number, required: true, min: 0 },
-    stock: { type: Number, default: 0 },            // available amount
+    stock: { type: Number, default: 0 },
 
-    // Men/Women/Unisex
     gender: { type: String, enum: ["men", "women", "unisex"], required: true },
-
-    // Concentration: maps to your categories EDT / EDP (you can extend)
     concentration: {
       type: String,
       enum: ["EDT", "EDP", "PARFUM", "EXTRAIT", "COLOGNE"],
@@ -110,7 +107,7 @@ const perfumeSchema = new mongoose.Schema(
     isPopular: { type: Boolean, default: false },
     isNewArrival: { type: Boolean, default: false },
 
-    imageUrl: { type: String, default: "" },       // HTTPS URL for the image
+    imageUrl: { type: String, default: "" },
     tags: { type: [String], default: [] },
   },
   { timestamps: true }
@@ -124,7 +121,6 @@ perfumeSchema.index({ name: "text", brand: "text", description: "text", tags: 1 
 
 const Perfume = mongoose.model("Perfume", perfumeSchema);
 
-// ----- Middleware -----
 function requireAdmin(req, res, next) {
   if (!ADMIN_API_KEY) return res.status(500).json({ message: "ADMIN_API_KEY not set" });
   const key = req.header("x-admin-api-key") || req.header("X-Admin-Api-Key");
@@ -132,12 +128,10 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// ----- Public, read-only endpoints -----
-// GET /perfumes?gender=men|women|unisex&concentration=EDT|EDP&popular=true&new=true&search=...&page=1&limit=20
+// Public, read-only
 app.get("/perfumes", async (req, res) => {
   try {
     const { gender, concentration, popular, new: isNew, search, page = 1, limit = 100 } = req.query;
-
     const q = {};
     if (gender && ["men", "women", "unisex"].includes(String(gender))) q.gender = String(gender);
     if (concentration && ["EDT", "EDP", "PARFUM", "EXTRAIT", "COLOGNE"].includes(String(concentration))) q.concentration = String(concentration);
@@ -170,7 +164,7 @@ app.get("/perfumes/:id", async (req, res) => {
   }
 });
 
-// Grouped view for your home/category sections
+// Grouped endpoint for home/category sections
 app.get("/perfumes/grouped", async (req, res) => {
   try {
     const all = await Perfume.find({}).sort({ createdAt: -1 });
@@ -210,7 +204,7 @@ app.get("/perfumes/grouped", async (req, res) => {
   }
 });
 
-// ----- Admin-only (write) endpoints: users cannot call these from the app -----
+// Admin-only writes (not callable by normal app users)
 app.post("/perfumes", requireAdmin, async (req, res) => {
   try {
     const {
@@ -272,20 +266,6 @@ app.delete("/perfumes/:id", requireAdmin, async (req, res) => {
   }
 });
 
-// Optional bulk import (admin): provide an array of items (no default static items)
-app.post("/admin/import", requireAdmin, async (req, res) => {
-  try {
-    const items = Array.isArray(req.body) ? req.body : []; // expect an array
-    if (!items.length) return res.status(400).json({ error: "Provide an array of items" });
-    const inserted = await Perfume.insertMany(items);
-    res.json({ inserted: inserted.length, items: inserted });
-  } catch (err) {
-    console.error("/admin/import error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Health & Root
 app.get("/health", (req, res) => {
   const state = mongoose.connection.readyState; // 0..3
   res.json({ status: "Catalog OK", dbState: state });
@@ -303,7 +283,6 @@ app.get("/", (req, res) => {
   `);
 });
 
-// Connect DB then start server
 (async () => {
   try {
     await mongoose.connect(MONGODB_URI);
