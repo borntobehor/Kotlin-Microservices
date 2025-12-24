@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 const PORT = process.env.ORDER_PORT || 5000;
-const orderService_URL =  process.env.ORDER_SERVICE_URL || "http://localhost:4000/orders";
+const orderService_URL =  process.env.ORDER_SERVICE_URL || "https://perfume-order.onrender.com/orders";
 
 app.post("/payment/:perfumeID", async (req, res) => {
   const perfumeID = req.params.perfumeID;
