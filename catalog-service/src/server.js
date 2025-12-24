@@ -67,7 +67,6 @@ app.listen(PORT, () => {
 });
 */
 
-
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
@@ -108,16 +107,19 @@ const perfumeSchema = new mongoose.Schema(
     isNewArrival: { type: Boolean, default: false },
 
     imageUrl: { type: String, default: "" },
-    tags: { type: [String], default: [] },
+    tags: { type: [String], default: [] }, // array of strings
   },
   { timestamps: true }
 );
 
+// Safe, single-field indexes only (no text indexes)
 perfumeSchema.index({ gender: 1 });
 perfumeSchema.index({ concentration: 1 });
 perfumeSchema.index({ isPopular: 1 });
 perfumeSchema.index({ isNewArrival: 1 });
-perfumeSchema.index({ name: "text", brand: "text", description: "text", tags: 1 });
+// If you often filter by price or brand, you may add:
+// perfumeSchema.index({ price: 1 });
+// perfumeSchema.index({ brand: 1 });
 
 const Perfume = mongoose.model("Perfume", perfumeSchema);
 
@@ -137,7 +139,18 @@ app.get("/perfumes", async (req, res) => {
     if (concentration && ["EDT", "EDP", "PARFUM", "EXTRAIT", "COLOGNE"].includes(String(concentration))) q.concentration = String(concentration);
     if (typeof popular !== "undefined") q.isPopular = String(popular) === "true";
     if (typeof isNew !== "undefined") q.isNewArrival = String(isNew) === "true";
-    if (search) q.$text = { $search: String(search) };
+
+    // Search without text index: case-insensitive regex on name/brand/description and tags $in
+    if (search) {
+      const s = String(search).trim();
+      const regex = new RegExp(s, "i");
+      q.$or = [
+        { name: regex },
+        { brand: regex },
+        { description: regex },
+        { tags: { $in: [s] } }, // exact tag match in array
+      ];
+    }
 
     const pageNum = Math.max(parseInt(String(page)) || 1, 1);
     const limitNum = Math.max(Math.min(parseInt(String(limit)) || 100, 200), 1);
@@ -266,9 +279,10 @@ app.delete("/perfumes/:id", requireAdmin, async (req, res) => {
   }
 });
 
-app.get("/health", (req, res) => {
+app.get("/health", async (req, res) => {
   const state = mongoose.connection.readyState; // 0..3
-  res.json({ status: "Catalog OK", dbState: state });
+  const indexes = await Perfume.collection.listIndexes().toArray().catch(() => []);
+  res.json({ status: "Catalog OK", dbState: state, indexes: indexes.map(i => i.name) });
 });
 
 app.get("/", (req, res) => {
@@ -283,10 +297,16 @@ app.get("/", (req, res) => {
   `);
 });
 
+// Connect DB then start server; ensure indexes match schema (drops old text indexes)
 (async () => {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log("Connected to MongoDB (Catalog)");
+
+    // Align indexes to schema — this will DROP indexes not in schema (like the old text index)
+    await Perfume.syncIndexes();
+    console.log("Indexes synchronized with schema");
+
     app.listen(PORT, () => console.log(`Catalog Service running on ${PORT}`));
   } catch (err) {
     console.error("MongoDB connection error:", err.message);
